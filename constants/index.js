@@ -16,6 +16,12 @@ import onboarding3 from "@/assets/images/onboarding3.png";
 import rightArrow from "@/assets/images/rightArrow.png";
 import backArrow from "@/assets/images/backArrow.png";
 import google from "@/assets/images/google.png";
+import fruits from "@/assets/images/fruits.png";
+import oil from "@/assets/images/oil.png";
+import meat from "@/assets/images/meat.png";
+import bakery from "@/assets/images/bakery.png";
+import dairy from "@/assets/images/dairy.png";
+import beverages from "@/assets/images/beverages.png";
 
 export const images = {
   onboarding1,
@@ -35,7 +41,13 @@ export const images = {
   banana,
   pepper,
   egg,
-  ginger
+  ginger,
+  fruits,
+  oil,
+  meat,
+  dairy,
+  bakery,
+  beverages
 };
 
 export const onboarding = [

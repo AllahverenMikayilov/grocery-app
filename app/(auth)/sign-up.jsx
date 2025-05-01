@@ -33,7 +33,7 @@ export default function SignIn() {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity
-        onPress={() => router.push("/(auth)/welcome")}
+        onPress={() => router.push("/(auth)/sign-in")}
         style={styles.backButton}
       >
         <Image source={images.backArrow} style={styles.image} />

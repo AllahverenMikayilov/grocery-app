@@ -1,11 +1,21 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
-import { useEffect } from 'react';
+import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { LogBox } from "react-native";
+import { enableScreens } from "react-native-screens";
 
+// Enable screens
+enableScreens();
+
+// Ignore specific warnings
+LogBox.ignoreLogs([
+  "ViewPropTypes will be removed",
+  "ColorPropType will be removed",
+]);
 
 SplashScreen.preventAutoHideAsync();
-
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -14,7 +24,7 @@ export default function RootLayout() {
     "Lexend-ExtraLight": require("../assets/fonts/Lexend-ExtraLight.ttf"),
     "Lexend-Light": require("../assets/fonts/Lexend-Light.ttf"),
     "Lexend-Medium": require("../assets/fonts/Lexend-Medium.ttf"),
-    "Lexend": require("../assets/fonts/Lexend-Regular.ttf"),
+    Lexend: require("../assets/fonts/Lexend-Regular.ttf"),
     "Lexend-SemiBold": require("../assets/fonts/Lexend-SemiBold.ttf"),
   });
 
@@ -28,10 +38,15 @@ export default function RootLayout() {
     return null;
   }
 
-  return <Stack options={{headerShown:false}}>
-     <Stack.Screen name="index" options={{ headerShown:false }} />
-     <Stack.Screen name="(auth)" options={{ headerShown:false }} />
-     <Stack.Screen name="(root)" options={{ headerShown:false }} />
-     <Stack.Screen name="(tabs)" options={{ headerShown:false }} />
-  </Stack>;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(root)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(screens)" />
+      </Stack>
+    </GestureHandlerRootView>
+  );
 }

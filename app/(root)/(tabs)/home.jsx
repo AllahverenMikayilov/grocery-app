@@ -12,15 +12,13 @@ import HomeSearch from "../../../components/HomeSearch";
 import HomeBanner from "../../../components/HomeBanner";
 import ProductsTitle from "../../../components/ProductsTitle";
 import ProductsCard from "../../../components/ProductsCard";
-
-import { fruits,vegetables } from "../../../utils/Date";
+import { fruits, vegetables } from "../../../utils/Date";
 
 export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.fixedHeader}>
+      <View style={styles.header}>
         <HomeIcon />
-        <View/>
         <HomeSearch />
       </View>
       <ScrollView
@@ -49,18 +47,19 @@ const styles = StyleSheet.create({
     backgroundColor: myColors.secondary,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
-  fixedHeader: {
+  header: {
     paddingHorizontal: 20,
     backgroundColor: myColors.secondary,
-    zIndex: 10,
+    zIndex: 1,
     paddingBottom: 10,
     paddingTop: 10,
-    gap: 10,
+    gap: 12,
   },
-
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 30,
-    gap: 20,
+    paddingBottom: 100, 
+    gap: 10,
   },
 });
+
+

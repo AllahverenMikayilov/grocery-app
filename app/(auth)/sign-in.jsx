@@ -14,20 +14,55 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect } from "react";
 
 export default function SignIn() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState("mika@gmail.com");
+  const [password, setPassword] = useState("123");
+  const [rememberMe, setRememberMe] = useState(true);
 
-  const handlePress = () => {
-    router.push("/(root)/(tabs)/home");
-  };
   const handleGoogleSignIn = () => {
     console.log("Google ilə daxil olundu!");
   };
 
+  useEffect(() => {
+    const loadCredentials = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem("email");
+        const savedPassword = await AsyncStorage.getItem("password");
+        const savedRememberMe = await AsyncStorage.getItem("rememberMe");
+
+        if (savedRememberMe === "true") {
+          setEmail(savedEmail || "");
+          setPassword(savedPassword || "");
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.error("Failed to load saved credentials", error);
+      }
+    };
+
+    loadCredentials();
+  }, []);
+  const handlePress = async () => {
+    try {
+      if (rememberMe) {
+        await AsyncStorage.setItem("email", email);
+        await AsyncStorage.setItem("password", password);
+        await AsyncStorage.setItem("rememberMe", "true");
+      } else {
+        await AsyncStorage.removeItem("email");
+        await AsyncStorage.removeItem("password");
+        await AsyncStorage.removeItem("rememberMe");
+      }
+
+      router.push("/(root)/(tabs)/home");
+    } catch (error) {
+      console.error("Failed to save credentials", error);
+    }
+  };
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity

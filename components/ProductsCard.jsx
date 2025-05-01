@@ -20,8 +20,9 @@ export default function ProductsCard({ data }) {
   const router = useRouter();
 
   const goToDetails = (item) => {
+    console.log("hg");
     router.push({
-      pathname: "/details",
+      pathname: "/(screens)/Details",
       params: { item: JSON.stringify(item) },
     });
   };
@@ -31,7 +32,7 @@ export default function ProductsCard({ data }) {
       horizontal
       showsHorizontalScrollIndicator={false}
       data={data}
-      keyExtractor={(item) => item.id?.toString() || item.name}
+      keyExtractor={(item) => item.name}
       contentContainerStyle={styles.list}
       renderItem={({ item }) => (
         <View style={styles.card}>
@@ -49,7 +50,7 @@ export default function ProductsCard({ data }) {
               >
                 <FontAwesome
                   name="plus-square"
-                  size={26}
+                  size={36}
                   color={myColors.primary}
                 />
               </TouchableOpacity>
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     paddingLeft: 2,
   },
   card: {
-    height: responsiveHeight(28),
+    height: responsiveHeight(30),
     width: responsiveWidth(45),
     marginRight: 15,
     backgroundColor: myColors.secondary,
@@ -115,6 +116,3 @@ const styles = StyleSheet.create({
     color: "#181725",
   },
 });
-
-
-

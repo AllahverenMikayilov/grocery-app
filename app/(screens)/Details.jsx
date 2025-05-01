@@ -11,19 +11,49 @@ import {
 } from "react-native";
 import { MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
 import Swiper from "react-native-swiper";
-import { myColors } from "../../../utils/MyColors";
-import { images } from "../../../constants";
+import { myColors } from "../../utils/MyColors";
+import { images } from "../../constants";
 import { FONTFAMILY } from "@/theme";
 import { useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { addToCart } from "@/utils/cartStorage";
+import {
+  addToFavourites,
+  removeFromFavourites,
+  getFavouriteItems,
+} from "@/utils/favouriteStorage";
 
 const productImages = [images.apple, images.apple2, images.apple3];
-
-const router = useRouter();
 
 export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const router = useRouter();
+
+  const { item } = useLocalSearchParams();
+  const product = item ? JSON.parse(item) : null;
+
+  React.useEffect(() => {
+    (async () => {
+      if (product) {
+        const favs = await getFavouriteItems();
+        setIsFavorite(!!favs.find((i) => i.id === product.id));
+      }
+    })();
+  }, [product]);
+
+  const handleToggleFavorite = async () => {
+    if (!product) return;
+    if (isFavorite) {
+      await removeFromFavourites(product.id);
+      setIsFavorite(false);
+    } else {
+      await addToFavourites(product);
+      setIsFavorite(true);
+    }
+  };
+
   const increaseQuantity = () => setQuantity((prev) => prev + 1);
   const decreaseQuantity = () =>
     setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
@@ -91,14 +121,14 @@ export default function ProductDetail() {
         <View style={styles.content}>
           <View style={styles.rowBetween}>
             <View>
-              <Text style={styles.title}>Naturel Red Apple</Text>
-              <Text style={styles.subtitle}>1kg, Price</Text>
+              <Text style={styles.title}>
+                {product?.name || "Product Name"}
+              </Text>
+              <Text style={styles.subtitle}>
+                {product?.pieces || "1kg, Price"}
+              </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                setIsFavorite(true);
-              }}
-            >
+            <TouchableOpacity onPress={handleToggleFavorite}>
               <MaterialIcons
                 name={isFavorite ? "favorite" : "favorite-border"}
                 size={24}
@@ -127,7 +157,10 @@ export default function ProductDetail() {
                 <MaterialIcons name="add" size={20} color={myColors.primary} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.price}>${(4.99 * quantity).toFixed(2)}</Text>
+            <Text style={styles.price}>
+              $
+              {product ? (product.price * quantity).toFixed(2) : (0).toFixed(2)}
+            </Text>
           </View>
 
           <View style={styles.section}>
@@ -165,7 +198,12 @@ export default function ProductDetail() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity
+            onPress={() => {
+              addToCart(product);
+            }}
+            style={styles.addButton}
+          >
             <Text style={styles.addButtonText}>Add To Basket</Text>
           </TouchableOpacity>
         </View>

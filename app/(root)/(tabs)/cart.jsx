@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -8,53 +8,68 @@ import {
   ScrollView,
   StatusBar,
   Platform,
+  Dimensions,
+  Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useFocusEffect } from "@react-navigation/native";
+
 import { myColors } from "../../../utils/MyColors";
 import { FONTFAMILY } from "@/theme";
 import { images } from "../../../constants";
+import { router } from "expo-router";
+import {
+  getCartItems,
+  removeFromCart,
+  setCartItems as _setCartItems,
+  clearItems,
+} from "../../../utils/cartStorage"; // adjust path
 
-const initialCartItems = [
-  {
-    id: 1,
-    name: "Bell Pepper Red",
-    image: images.pepper,
-    quantity: 1,
-    price: 4.99,
-    unit: "1kg",
-  },
-  {
-    id: 2,
-    name: "Egg Chicken Red",
-    image: images.egg,
-    quantity: 1,
-    price: 1.99,
-    unit: "4pcs",
-  },
-  {
-    id: 3,
-    name: "Organic Bananas",
-    image: images.banana,
-    quantity: 1,
-    price: 3.0,
-    unit: "12kg",
-  },
-  {
-    id: 4,
-    name: "Ginger",
-    image: images.ginger,
-    quantity: 1,
-    price: 2.99,
-    unit: "250gm",
-  },
-];
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function Cart() {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState([]);
+  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
 
-  const updateQuantity = (id, increment) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ["100%", 300], []);
+
+  const handleSheetChanges = useCallback((index) => {
+    console.log("Bottom sheet index:", index);
+    // setIsBottomSheetVisible(index === 0);
+  }, []);
+
+  const openBottomSheet = useCallback(() => {
+    console.log("Opening bottom sheet...");
+    setIsBottomSheetVisible(true);
+    bottomSheetRef.current?.present();
+  }, []);
+
+  const closeBottomSheet = useCallback(() => {
+    if (bottomSheetRef.current) {
+      bottomSheetRef.current.close();
+    }
+    setIsBottomSheetVisible(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const items = await getCartItems();
+        setCartItems(items);
+      })();
+    }, [])
+  );
+
+  const updateQuantity = async (id, increment) => {
+    setCartItems((prev) => {
+      const updated = prev.map((item) =>
         item.id === id
           ? {
               ...item,
@@ -63,14 +78,22 @@ export default function Cart() {
                 : Math.max(1, item.quantity - 1),
             }
           : item
-      )
-    );
+      );
+      setCartItems(updated);
+      _setCartItems(updated); // update AsyncStorage
+      return updated;
+    });
   };
 
-  const removeItem = (id) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  const removeItem = async (id) => {
+    await removeFromCart(id);
+    setCartItems((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      setCartItems(updated);
+      _setCartItems(updated); // update AsyncStorage
+      return updated;
+    });
   };
-
   const getTotalPrice = () => {
     return cartItems
       .reduce((total, item) => total + item.price * item.quantity, 0)
@@ -78,82 +101,156 @@ export default function Cart() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="dark-content"
-      />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <View style={styles.container}>
+          <StatusBar
+            translucent
+            backgroundColor="transparent"
+            barStyle="dark-content"
+          />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Cart</Text>
-      </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>My Cart</Text>
+          </View>
 
-      <ScrollView style={styles.cartList} showsVerticalScrollIndicator={false}>
-        {cartItems.map((item) => (
-          <View key={item.id} style={styles.cartItem}>
-            <Image source={item.image} style={styles.itemImage} />
-            <View style={styles.itemDetails}>
-              <View>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemUnit}>{item.unit}, Price</Text>
-              </View>
-              <View style={styles.itemActions}>
-                <View style={styles.quantityControls}>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => updateQuantity(item.id, false)}
-                  >
-                    <MaterialIcons
-                      name="remove"
-                      size={20}
-                      color={myColors.primary}
-                    />
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => updateQuantity(item.id, true)}
-                  >
-                    <MaterialIcons
-                      name="add"
-                      size={20}
-                      color={myColors.primary}
-                    />
-                  </TouchableOpacity>
+          {/* Cart Items */}
+          <ScrollView
+            style={styles.cartList}
+            showsVerticalScrollIndicator={false}
+          >
+            {cartItems.map((item) => (
+              <View key={item.id} style={styles.cartItem}>
+                <Image source={item.image} style={styles.itemImage} />
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemUnit}>{item.unit}, Price</Text>
+
+                  <View style={styles.itemActions}>
+                    <View style={styles.quantityControls}>
+                      <TouchableOpacity
+                        onPress={() => updateQuantity(item.id, false)}
+                        style={styles.quantityButton}
+                      >
+                        <MaterialIcons
+                          name="remove"
+                          size={20}
+                          color={myColors.primary}
+                        />
+                      </TouchableOpacity>
+
+                      <Text style={styles.quantityText}>{item.quantity}</Text>
+
+                      <TouchableOpacity
+                        onPress={() => updateQuantity(item.id, true)}
+                        style={styles.quantityButton}
+                      >
+                        <MaterialIcons
+                          name="add"
+                          size={20}
+                          color={myColors.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.itemPrice}>
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.itemPrice}>
-                  ${(item.price * item.quantity).toFixed(2)}
-                </Text>
+
+                <TouchableOpacity
+                  onPress={() => removeItem(item.id)}
+                  style={styles.removeButton}
+                >
+                  <MaterialIcons name="close" size={24} color="#B3B3B3" />
+                </TouchableOpacity>
               </View>
-            </View>
+            ))}
+          </ScrollView>
+
+          {/* Checkout Button */}
+          <View style={styles.checkoutContainer}>
             <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => removeItem(item.id)}
+              style={styles.checkoutButton}
+              onPress={openBottomSheet}
             >
-              <MaterialIcons name="close" size={24} color="#B3B3B3" />
+              <Text style={styles.checkoutText}>Go to Checkout</Text>
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalPrice}>${getTotalPrice()}</Text>
+              </View>
             </TouchableOpacity>
           </View>
-        ))}
-      </ScrollView>
 
-      <View style={styles.checkoutContainer}>
-        <TouchableOpacity style={styles.checkoutButton}>
-          <Text style={styles.checkoutText}>Go to Checkout</Text>
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalPrice}>${getTotalPrice()}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <BottomSheetModal
+            ref={bottomSheetRef}
+            onChange={handleSheetChanges}
+            backgroundStyle={styles.bottomSheetBackground}
+            handleIndicatorStyle={styles.bottomSheetIndicator}
+            animateOnMount={true}
+            snapPoints={snapPoints}
+          >
+            <BottomSheetView style={styles.sheetContainer}>
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>Checkout</Text>
+                <TouchableOpacity
+                  onPress={closeBottomSheet}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <MaterialIcons name="close" size={24} color="#181725" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.sheetContent}>
+                <View style={styles.sheetRow}>
+                  <Text style={styles.sheetLabel}>Delivery</Text>
+                  <Text style={styles.sheetValue}>-</Text>
+                </View>
+
+                <View style={styles.sheetRow}>
+                  <Text style={styles.sheetLabel}>Total Cost</Text>
+                  <View style={styles.sheetTotalContainer}>
+                    <Text style={styles.sheetTotal}>${getTotalPrice()}</Text>
+                    <MaterialIcons
+                      name="chevron-right"
+                      size={24}
+                      color="#181725"
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.sheetTerms}>
+                  By placing an order you agree to our{" "}
+                  <Text style={styles.sheetTermsBold}>Terms</Text> And{" "}
+                  <Text style={styles.sheetTermsBold}>Conditions</Text>
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.placeOrderButton}
+                  onPress={() => {
+                    if (cartItems.length) {
+                      router.push("/(screens)/OrderAccepted");
+                      clearItems();
+                      return;
+                    }
+                    Alert.alert("Bos sebet!");
+                  }}
+                >
+                  <Text style={styles.placeOrderText}>Place Order</Text>
+                </TouchableOpacity>
+              </View>
+            </BottomSheetView>
+          </BottomSheetModal>
+        </View>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
+  container: { flex: 1, backgroundColor: "#FFF" },
+
   header: {
     paddingTop: Platform.OS === "ios" ? 50 : StatusBar.currentHeight + 10,
     paddingBottom: 20,
@@ -165,10 +262,9 @@ const styles = StyleSheet.create({
     color: "#181725",
     textAlign: "center",
   },
-  cartList: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
+
+  cartList: { paddingHorizontal: 20 },
+
   cartItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -176,25 +272,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E2E2E2",
   },
-  itemImage: {
-    width: 70,
-    height: 70,
-    resizeMode: "contain",
-  },
-  itemDetails: {
-    flex: 1,
-    marginLeft: 15,
-  },
+  itemImage: { width: 70, height: 70, resizeMode: "contain" },
+  itemDetails: { flex: 1, marginLeft: 15 },
   itemName: {
     fontSize: 16,
     fontFamily: FONTFAMILY.lexend_medium,
     color: "#181725",
-    marginBottom: 5,
   },
   itemUnit: {
     fontSize: 14,
     fontFamily: FONTFAMILY.lexend_regular,
     color: "#7C7C7C",
+    marginBottom: 5,
   },
   itemActions: {
     flexDirection: "row",
@@ -226,10 +315,8 @@ const styles = StyleSheet.create({
     fontFamily: FONTFAMILY.lexend_semibold,
     color: myColors.primary,
   },
-  removeButton: {
-    padding: 5,
-    marginLeft: 10,
-  },
+  removeButton: { padding: 5, marginLeft: 10 },
+
   checkoutContainer: {
     padding: 20,
     paddingBottom: Platform.OS === "ios" ? 90 : 85,
@@ -244,7 +331,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkoutText: {
-    color: "#FFFFFF",
+    color: "#FFF",
     fontSize: 18,
     fontFamily: FONTFAMILY.lexend_semibold,
   },
@@ -255,37 +342,93 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
   totalPrice: {
-    color: "#FFFFFF",
+    color: "#FFF",
     fontSize: 16,
     fontFamily: FONTFAMILY.lexend_semibold,
   },
-  tabBar: {
+
+  bottomSheetBackground: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  bottomSheetIndicator: {
+    backgroundColor: "#E2E2E2",
+    width: 60,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 8,
+  },
+  sheetContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  sheetTitle: {
+    fontSize: 24,
+    fontFamily: FONTFAMILY.lexend_semibold,
+    color: "#181725",
+  },
+  sheetContent: {
+    paddingTop: 20,
+    // flex: 1,
+  },
+  sheetRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E2E2E2",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E2E2",
   },
-  tabItem: {
+  sheetLabel: {
+    fontSize: 18,
+    fontFamily: FONTFAMILY.lexend_regular,
+    color: "#7C7C7C",
+    marginBottom: 20,
+  },
+  sheetValue: {
+    fontSize: 16,
+    fontFamily: FONTFAMILY.lexend_medium,
+    color: "#181725",
+  },
+  sheetTotalContainer: {
+    flexDirection: "row",
     alignItems: "center",
   },
-  tabText: {
-    fontSize: 12,
-    fontFamily: FONTFAMILY.lexend_regular,
+  sheetTotal: {
+    fontSize: 24,
+    fontFamily: FONTFAMILY.lexend_semibold,
     color: "#181725",
-    marginTop: 5,
+    marginRight: 4,
   },
-  activeTab: {
-    color: myColors.primary,
+  sheetTerms: {
+    fontSize: 14,
+    fontFamily: FONTFAMILY.lexend_regular,
+    color: "#7C7C7C",
+    textAlign: "center",
+    marginTop: 30,
+    marginBottom: 20,
   },
-  activeTabText: {
-    color: myColors.primary,
+  sheetTermsBold: {
+    fontFamily: FONTFAMILY.lexend_semibold,
+    color: "#181725",
+  },
+  placeOrderButton: {
+    backgroundColor: myColors.primary,
+    borderRadius: 19,
+    paddingVertical: 20,
+    marginBottom: Platform.OS === "ios" ? 34 : 20,
+  },
+  placeOrderText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontFamily: FONTFAMILY.lexend_semibold,
+    textAlign: "center",
   },
 });

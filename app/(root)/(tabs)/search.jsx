@@ -1,293 +1,179 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
-  Image,
   StyleSheet,
+  TextInput,
+  FlatList,
+  Pressable,
   TouchableOpacity,
-  ScrollView,
-  StatusBar,
-  Platform,
 } from "react-native";
-import { MaterialIcons, Ionicons, Feather } from "@expo/vector-icons";
-import Swiper from "react-native-swiper";
-import { myColors } from "../../../utils/MyColors";
-import { images } from "../../../constants";
-import { FONTFAMILY } from "@/theme";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { categories } from "../../../utils/Date";
+import CategoryCard from "../../../components/CategoryCard";
 import { useRouter } from "expo-router";
+import { useRef, useMemo, useState, useCallback } from "react";
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 
-const productImages = [images.apple, images.apple2, images.apple3];
-
-const router = useRouter();
-
-export default function ProductDetail() {
-  const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const increaseQuantity = () => setQuantity((prev) => prev + 1);
-  const decreaseQuantity = () =>
-    setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
-
-  const toggleDetails = () => {
-    setShowDetails(!showDetails);
-  };
+export default function ExploreScreen() {
+  const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const bottomSheetRef = useRef(null);
+  const snapPoints = useMemo(() => ["100%"], []);
+  const openCategoriesModal = useCallback(() => {
+    bottomSheetRef.current?.present();
+  }, []);
+  const closeCategoriesModal = useCallback(() => {
+    bottomSheetRef.current?.close();
+  }, []);
 
   return (
-    <View style={styles.screen}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="dark-content"
-      />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        <View style={styles.imageSection}>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={28} color="#181725" />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Feather name="share" size={24} color="#181725" />
-            </TouchableOpacity>
+    <BottomSheetModalProvider>
+      <View style={styles.container}>
+        <Text style={styles.header}>Find Products</Text>
+        <View style={{ flexDirection: "row" }}>
+          <View style={styles.searchContainer}>
+            <Ionicons
+              name="search"
+              size={22}
+              color="#888"
+              style={{ marginLeft: 10 }}
+            />
+            <TextInput
+              placeholder="Search Store"
+              style={styles.searchInput}
+              placeholderTextColor="#888"
+            />
           </View>
-
-          <Swiper
-            autoplay
-            dotColor="#ccc"
-            activeDotColor={myColors.primary}
-            showsButtons={false}
-            height={250}
-            paginationStyle={{
-              bottom: -10,
-            }}
-            dotStyle={{
-              backgroundColor: "#ccc",
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              marginHorizontal: 4,
-            }}
-            activeDotStyle={{
-              backgroundColor: myColors.primary,
-              width: 20,
-              height: 8,
-              borderRadius: 4,
-              marginHorizontal: 4,
-            }}
-          >
-            {productImages.map((img, index) => (
-              <Image
-                key={index}
-                source={img}
-                style={styles.image}
-                resizeMode="contain"
-              />
-            ))}
-          </Swiper>
+          <Pressable onPress={openCategoriesModal}>
+            <Ionicons
+              style={{ marginTop: 10 }}
+              name="options-outline"
+              size={26}
+              color="#222"
+            />
+          </Pressable>
         </View>
-
-        <View style={styles.content}>
-          <View style={styles.rowBetween}>
-            <View>
-              <Text style={styles.title}>Naturel Red Apple</Text>
-              <Text style={styles.subtitle}>1kg, Price</Text>
-            </View>
-            <TouchableOpacity
+        <FlatList
+          data={categories}
+          keyExtractor={(item) => item.title}
+          numColumns={2}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <CategoryCard
+              title={item.title}
+              image={item.image}
+              backgroundColor={item.backgroundColor}
               onPress={() => {
-                setIsFavorite(true);
+                if (item.title === "Beverages") {
+                  router.push("/(screens)/BeveragesScreen");
+                }
               }}
+            />
+          )}
+        />
+        {/* BottomSheetModal for Categories */}
+        <BottomSheetModal
+          ref={bottomSheetRef}
+          snapPoints={snapPoints}
+          backgroundStyle={{
+            backgroundColor: "#fff",
+            borderTopLeftRadius: 30,
+            borderTopRightRadius: 30,
+          }}
+          handleIndicatorStyle={{
+            backgroundColor: "#E2E2E2",
+            width: 60,
+            height: 4,
+            borderRadius: 2,
+            marginTop: 8,
+          }}
+        >
+          <BottomSheetView style={{ padding: 24 }}>
+            <Text
+              style={{ fontSize: 20, fontWeight: "bold", marginBottom: 20 }}
             >
-              <MaterialIcons
-                name={isFavorite ? "favorite" : "favorite-border"}
-                size={24}
-                color={isFavorite ? "red" : "#181725"}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.rowBetween}>
-            <View style={styles.quantityContainer}>
+              Select Category
+            </Text>
+            {categories.map((cat) => (
               <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={decreaseQuantity}
+                key={cat.title}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+                onPress={() => setSelectedCategory(cat.title)}
               >
                 <MaterialIcons
-                  name="remove"
-                  size={20}
-                  color={myColors.primary}
+                  name={
+                    selectedCategory === cat.title
+                      ? "radio-button-checked"
+                      : "radio-button-unchecked"
+                  }
+                  size={24}
+                  color={selectedCategory === cat.title ? "#6CC51D" : "#888"}
                 />
+                <Text style={{ marginLeft: 12, fontSize: 16 }}>
+                  {cat.title}
+                </Text>
               </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantity}</Text>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={increaseQuantity}
-              >
-                <MaterialIcons name="add" size={20} color={myColors.primary} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.price}>${(4.99 * quantity).toFixed(2)}</Text>
-          </View>
-
-          <View style={styles.section}>
+            ))}
             <TouchableOpacity
-              style={styles.detailsHeader}
-              onPress={toggleDetails}
+              style={{
+                marginTop: 20,
+                backgroundColor: "#6CC51D",
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: "center",
+              }}
+              onPress={() => {
+                closeCategoriesModal();
+                router.push("/(screens)/BeveragesScreen");
+              }}
             >
-              <Text style={styles.sectionTitle}>Product Detail</Text>
-              <MaterialIcons
-                name={
-                  showDetails ? "keyboard-arrow-down" : "keyboard-arrow-right"
-                }
-                size={24}
-                color="#181725"
-              />
-            </TouchableOpacity>
-            {showDetails && (
-              <Text style={styles.detailsText}>
-                Apples Are Nutritious. Apples May Be Good For Weight Loss.
-                Apples May Be Good For Your Heart. As Part Of A Healthful And
-                Varied Diet.
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+                Apply Filter
               </Text>
-            )}
-          </View>
-
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Nutritions</Text>
-            <View style={styles.nutritionBox}>
-              <Text style={styles.nutritionText}>100gr</Text>
-              <MaterialIcons
-                name="keyboard-arrow-right"
-                size={20}
-                color="#181725"
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.addButton}>
-            <Text style={styles.addButtonText}>Add To Basket</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+            </TouchableOpacity>
+          </BottomSheetView>
+        </BottomSheetModal>
+      </View>
+    </BottomSheetModalProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-    backgroundColor: myColors.secondary,
+    backgroundColor: "#fafafa",
+    paddingHorizontal: 16,
+    paddingTop: 50,
   },
-  imageSection: {
-    backgroundColor: "#F2F3F2",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+  header: {
+    fontSize: 26,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 18,
+    color: "#222",
   },
-  headerIcons: {
-    position: "absolute",
-    top: Platform.OS === "android" ? StatusBar.currentHeight + 10 : 50,
-    left: 20,
-    right: 20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    zIndex: 10,
-  },
-  image: {
-    width: "100%",
-    height: 220,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  title: {
-    fontFamily: FONTFAMILY.lexend_semibold,
-    fontSize: 24,
-    color: myColors.third,
-  },
-  subtitle: {
-    fontFamily: FONTFAMILY.lexend_regular,
-    color: myColors.gray,
-    marginTop: 2,
-  },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 12,
-  },
-  quantityContainer: {
+  searchContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 20,
+    backgroundColor: "#f2f2f2",
+    borderRadius: 16,
+    marginBottom: 18,
+    height: 48,
   },
-  quantityButton: {
-    borderWidth: 1,
-    borderColor: myColors.lightGray,
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  quantityText: {
-    fontFamily: FONTFAMILY.lexend_medium,
+  searchInput: {
+    flex: 1,
     fontSize: 16,
-  },
-  price: {
-    fontFamily: FONTFAMILY.lexend_semibold,
-    fontSize: 20,
-    color: myColors.primary,
-  },
-  section: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  detailsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  sectionTitle: {
-    fontFamily: FONTFAMILY.lexend_medium,
-    fontSize: 16,
-    color: "#181725",
-  },
-  description: {
-    fontFamily: FONTFAMILY.lexend_regular,
-    color: myColors.gray,
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  nutritionBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: myColors.lightGray,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  nutritionText: {
-    fontFamily: FONTFAMILY.lexend_regular,
-    marginRight: 5,
-    color: myColors.third,
-  },
-  addButton: {
-    backgroundColor: myColors.primary,
-    paddingVertical: 15,
-    borderRadius: 15,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  addButtonText: {
-    color: myColors.secondary,
-    fontFamily: FONTFAMILY.lexend_medium,
-    fontSize: 16,
+    marginLeft: 8,
+    color: "#222",
   },
 });

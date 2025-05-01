@@ -12,17 +12,19 @@ const PRIMARY_COLOR = "#6CC51D";
 const SECONDARY_COLOR = "#fff";
 const TAB_ITEM_SIZE = 42;
 
+const tabOrder = ["home", "search", "cart", "favourite", "profile"]; 
+
 const CustomTabBar: React.FC<BottomTabBarProps> = ({
   state,
   navigation,
 }) => {
   return (
     <View style={styles.container}>
-      {state.routes.map((route:any, index:any) => {
-        if (["_sitemap", "+not-found"].includes(route.name)) {
-          return null;
-        }
+      {tabOrder.map((tabName) => {
+        const index = state.routes.findIndex((route: { name: string; }) => route.name === tabName);
+        if (index === -1) return null;
 
+        const route = state.routes[index];
         const isFocused = state.index === index;
 
         const onPress = () => {
@@ -69,15 +71,16 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({
   function getIcon(name: string, color: string) {
     switch (name) {
       case "search":
-        return <MaterialIcons name="manage-search" size={20} color={color} />
+        return <MaterialIcons name="manage-search" size={24} color={color} />;
       case "cart":
-        return <Ionicons name="cart-outline" size={20} color={color} />
-        case "favourite":
-        return <Ionicons name="heart-outline" size={20} color={color} />
-        case "profile":
-            return <Ionicons name="person-outline" size={20} color={color} />;
+        return <Ionicons name="cart-outline" size={24} color={color} />;
+      case "favourite":
+        return <Ionicons name="heart-outline" size={24} color={color} />;
+      case "profile":
+        return <Ionicons name="person-outline" size={24} color={color} />;
+      case "home":
       default:
-        return <Ionicons name="storefront-outline" size={20} color={color} />
+        return <Ionicons name="storefront-outline" size={24} color={color} />;
     }
   }
 };
@@ -86,7 +89,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     position: "absolute",
-    bottom: 40,
+    bottom: 10,
     backgroundColor: PRIMARY_COLOR,
     width: "90%",
     alignSelf: "center",
