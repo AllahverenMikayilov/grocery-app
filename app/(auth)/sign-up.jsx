@@ -12,9 +12,8 @@ import {
   Text,
   View,
   ScrollView,
+  SafeAreaView
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
 export default function SignIn() {
   const router = useRouter();
   const [password, setPassword] = useState("");

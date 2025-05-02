@@ -4,10 +4,10 @@ import {
   StyleSheet,
   Text,
   View,
+  SafeAreaView,
   useWindowDimensions,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { onboarding } from "@/constants";
 import { FONTFAMILY } from "@/theme/index";
 import Animated, {

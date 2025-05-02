@@ -4,8 +4,8 @@ import {
   View,
   StatusBar,
   Platform,
+  SafeAreaView
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { myColors } from "../../../utils/MyColors";
 import HomeIcon from "../../../components/HomeIcon";
 import HomeSearch from "../../../components/HomeSearch";
